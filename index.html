@@ -183,4 +183,30 @@
 
     function saveProgress(id) {
         if (currentSetId === 'mistakes') return;
-        let done = JSON.parse(localStorage.getItem(`set_${currentSetId}_done
+        let done = JSON.parse(localStorage.getItem(`set_${currentSetId}_done`) || '[]');
+        if (!done.includes(id)) {
+            done.push(id);
+            localStorage.setItem(`set_${currentSetId}_done`, JSON.stringify(done));
+        }
+    }
+
+    function addToMistakes(id) {
+        let mistakes = JSON.parse(localStorage.getItem('mistakes') || '[]');
+        if (!mistakes.includes(id)) {
+            mistakes.push(id);
+            localStorage.setItem('mistakes', JSON.stringify(mistakes));
+        }
+    }
+
+    function removeFromMistakes(id) {
+        let mistakes = JSON.parse(localStorage.getItem('mistakes') || '[]');
+        mistakes = mistakes.filter(m => m !== id);
+        localStorage.setItem('mistakes', JSON.stringify(mistakes));
+    }
+
+    function showMenu() { renderMenu(); }
+
+    init();
+</script>
+</body>
+</html>
