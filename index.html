@@ -5,6 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>German SRS - Granular Coding</title>
     <style>
+        /* Stats Dashboard Styling */
+.stats-dashboard {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid var(--border);
+}
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 15px;
+}
+.stat-item {
+    background: #f8fafc;
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid var(--border);
+}
+.stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--primary);
+}
+.stat-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+.mastered-box {
+    grid-column: span 2;
+    background: #ecfdf5;
+    border-color: #10b981;
+}
+.mastered-box .stat-value { color: #059669; }
         :root { 
             --primary: #2563eb; 
             --success: #16a34a; 
@@ -55,6 +92,11 @@
         <h2 style="margin-top: 0;">German Mastery</h2>
         <div id="srs-due-container"></div>
         <div id="sets-grid"></div>
+        <div class="stats-dashboard">
+    <h3>Your Progress</h3>
+    <div class="stats-grid" id="stats-container">
+        </div>
+</div>
     </div>
 
     <div id="game-view" class="hidden">
@@ -90,30 +132,91 @@
     function init() { if (typeof vocabularyData !== 'undefined') renderMenu(); }
 
     function renderMenu() {
-        document.getElementById('menu-view').classList.remove('hidden');
-        document.getElementById('game-view').classList.add('hidden');
-        const grid = document.getElementById('sets-grid');
-        const srsContainer = document.getElementById('srs-due-container');
-        grid.innerHTML = '';
-        srsContainer.innerHTML = '';
+    document.getElementById('menu-view').classList.remove('hidden');
+    document.getElementById('game-view').classList.add('hidden');
+    
+    const grid = document.getElementById('sets-grid');
+    const srsContainer = document.getElementById('srs-due-container');
+    grid.innerHTML = '';
+    srsContainer.innerHTML = '';
 
-        const due = getDueSRSVerbs();
-        if (due.length > 0) srsContainer.innerHTML = `<div class="btn-review" style="text-align:center; padding:15px; margin-bottom:20px;" onclick="startSRSReview()">🔥 ${due.length} Reviews Due</div>`;
-
-        const totalSets = Math.ceil(vocabularyData.length / (VERBS_PER_SET * 4));
-        for (let i = 0; i < totalSets; i++) {
-            const mastered = getMasteredCountForSet(i);
-            const isFull = mastered === VERBS_PER_SET;
-            grid.innerHTML += `
-                <div class="set-card">
-                    <strong>Set ${i + 1}</strong> (${mastered}/${VERBS_PER_SET} Verbs)
-                    <div class="progress-bar"><div class="progress-fill" style="width: ${(mastered/VERBS_PER_SET)*100}%"></div></div>
-                    ${isFull ? `<button class="btn-review" onclick="startSetReview(${i})">Review Set</button>
-                                <button class="btn-reset" onclick="resetSet(${i})">Reset</button>` : 
-                               `<button class="btn-main" onclick="startLearningSet(${i})">Start Learning</button>`}
-                </div>`;
-        }
+    const dueVerbs = getDueSRSVerbs();
+    if (dueVerbs.length > 0) {
+        srsContainer.innerHTML = `<div class="srs-banner" onclick="startSRSReview()">📢 ${dueVerbs.length} Scheduled Reviews Ready</div>`;
     }
+
+    const totalSets = Math.ceil(vocabularyData.length / (VERBS_PER_SET * 4));
+    for (let i = 0; i < totalSets; i++) {
+        const masteredCount = getMasteredCountForSet(i);
+        const isFullyMastered = masteredCount === VERBS_PER_SET;
+        const pct = (masteredCount / VERBS_PER_SET) * 100;
+        
+        grid.innerHTML += `
+            <div class="set-card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong>Set ${i + 1}</strong>
+                    <span style="font-size:0.8rem; color:#64748b">${masteredCount}/${VERBS_PER_SET} Verbs</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width: ${pct}%"></div></div>
+                ${isFullyMastered ? 
+                    `<button class="btn-review" onclick="startSetReview(${i})">Review Set</button>
+                     <button class="btn-reset" onclick="resetSet(${i})">Reset Progress</button>` : 
+                    `<button class="btn-main" onclick="startLearningSet(${i})">Start Learning</button>`
+                }
+            </div>`;
+    }
+    
+    // Call the new stats function
+    renderStats();
+}
+
+function renderStats() {
+    const store = getStore();
+    const statsContainer = document.getElementById('stats-container');
+    
+    // Initialize counters
+    let learning = 0;
+    let stage1 = 0; // 48h
+    let stage2 = 0; // 7d
+    let stage3 = 0; // 30d
+    let mastered = 0;
+
+    const allPairs = [...new Set(vocabularyData.map(s => s.pair))];
+
+    allPairs.forEach(pair => {
+        const data = store[pair];
+        if (!data) return;
+        
+        if (data.stage === 0) learning++;
+        else if (data.stage === 1) stage1++;
+        else if (data.stage === 2) stage2++;
+        else if (data.stage === 3) stage3++;
+        else if (data.stage >= 4 || data.nextReview === 0) mastered++;
+    });
+
+    statsContainer.innerHTML = `
+        <div class="stat-item">
+            <span class="stat-value">${learning}</span>
+            <span class="stat-label">Learning</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value">${stage1}</span>
+            <span class="stat-label">48h Review</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value">${stage2}</span>
+            <span class="stat-label">7d Review</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value">${stage3}</span>
+            <span class="stat-label">30d Review</span>
+        </div>
+        <div class="stat-item mastered-box">
+            <span class="stat-value">${mastered} / ${allPairs.length}</span>
+            <span class="stat-label">Fully Mastered Verbs</span>
+        </div>
+    `;
+}
 
     function startLearningSet(n) {
         sessionMode = 'learning';
