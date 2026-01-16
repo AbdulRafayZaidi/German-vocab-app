@@ -3,239 +3,301 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>German Cloze Master</title>
+    <title>German SRS Master</title>
     <style>
-        .next-btn { 
-    margin-top: 20px; 
-    padding: 12px 24px; 
-    background: var(--primary); 
-    color: white; 
-    border: none; 
-    border-radius: 6px; 
-    cursor: pointer; 
-    width: 100%; 
-    font-size: 1.1rem;
-}
-.next-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
-        :root { --primary: #2563eb; --success: #22c55e; --error: #ef4444; --bg: #f8fafc; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; }
-        .container { width: 100%; max-width: 600px; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        :root { --primary: #2563eb; --success: #22c55e; --error: #ef4444; --bg: #f1f5f9; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; }
+        .container { width: 100%; max-width: 600px; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative; }
         
-        /* Menu Styling */
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-        .set-btn { padding: 20px; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; background: white; transition: 0.2s; text-align: left; }
-        .set-btn:hover { border-color: var(--primary); background: #eff6ff; }
-        .progress-bar { height: 8px; background: #e2e8f0; border-radius: 4px; margin-top: 10px; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--success); width: 0%; transition: width 0.3s; }
-        
-        /* Game Styling */
+        /* Menu & Sets */
+        .set-card { border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+        .set-info { flex-grow: 1; cursor: pointer; }
+        .reset-btn { color: #94a3b8; background: none; border: none; cursor: pointer; font-size: 0.8rem; padding: 5px; }
+        .reset-btn:hover { color: var(--error); }
+        .srs-banner { background: #fee2e2; border: 1px solid #f87171; padding: 15px; border-radius: 8px; margin-bottom: 20px; cursor: pointer; text-align: center; color: #991b1b; font-weight: bold; }
+
+        /* Game UI */
         .hidden { display: none; }
-        .sentence { font-size: 1.4rem; line-height: 1.6; margin-bottom: 20px; min-height: 60px; }
-        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .opt-btn { padding: 15px; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; font-size: 1.1rem; background: white; }
-        .opt-btn:hover { background: #f1f5f9; }
+        .sentence { font-size: 1.3rem; line-height: 1.6; margin: 30px 0; min-height: 80px; text-align: center; }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .opt-btn { padding: 16px; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; font-size: 1.1rem; background: white; transition: 0.2s; }
         .correct { background: var(--success) !important; color: white; border-color: var(--success); }
         .wrong { background: var(--error) !important; color: white; border-color: var(--error); }
         
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .back-btn { background: none; border: none; color: var(--primary); cursor: pointer; font-weight: bold; }
+        /* Positioning Next at bottom */
+        .game-footer { margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; }
+        .next-btn { padding: 16px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1.1rem; font-weight: bold; }
+
+        .progress-bar { height: 6px; background: #e2e8f0; border-radius: 3px; margin-top: 8px; width: 150px; }
+        .progress-fill { height: 100%; background: var(--success); border-radius: 3px; }
+        .header { display: flex; justify-content: space-between; margin-bottom: 10px; color: #64748b; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div id="menu-view">
-        <h1 style="margin-top:0">German Sets</h1>
-        <div id="mistake-container"></div>
-        <div class="grid" id="sets-grid"></div>
+        <h1 style="margin-bottom: 5px;">German Verbs</h1>
+        <p style="color: #64748b; margin-bottom: 25px;">Master verbs through Spaced Repetition</p>
+        
+        <div id="srs-due-container"></div>
+        <div id="sets-grid"></div>
     </div>
 
     <div id="game-view" class="hidden">
-        <button id="next-btn" class="next-btn hidden" onclick="nextQuestion()">Next Sentence →</button>
         <div class="header">
-            <button class="back-btn" onclick="showMenu()">← Back</button>
-            <div id="progress-text">Sentence 1 / 15</div>
+            <button onclick="goBack()" style="background:none; border:none; color:var(--primary); cursor:pointer;">← Save & Exit</button>
+            <span id="progress-text">1 / 60</span>
         </div>
+        
         <div class="sentence" id="sentence-text"></div>
+        
         <div class="options-grid" id="options-grid"></div>
-        <p id="translation-text" style="color: #64748b; font-style: italic; margin-top: 20px;"></p>
+        
+        <div class="game-footer">
+            <p id="translation-text" style="text-align: center; color: #64748b; margin-bottom: 15px; min-height: 1.2rem;"></p>
+            <button id="next-btn" class="next-btn hidden" onclick="nextQuestion()">Next Sentence →</button>
+        </div>
     </div>
 </div>
 
 <script src="data.js"></script>
 <script>
-const VERBS_PER_SET = 15;
-const SENTS_PER_VERB = 4;
-
-let currentSessionData = []; 
-let currentIdx = 0;
-let currentSetId = null;
-
-function init() {
-    if (typeof vocabularyData === 'undefined') return;
+    const VERBS_PER_SET = 15;
+    const SENTS_PER_VERB = 4;
     
-    // Check if there is a saved session to resume
-    const saved = JSON.parse(localStorage.getItem('active_session'));
-    if (saved) {
-        currentSessionData = saved.data;
-        currentIdx = saved.idx;
-        currentSetId = saved.setId;
-        showGame();
-    } else {
-        renderMenu();
-    }
-}
+    let currentSessionData = [];
+    let currentIdx = 0;
+    let sessionMode = 'learning'; // 'learning', 'post-review', or 'srs'
 
-function renderMenu() {
-    localStorage.removeItem('active_session'); // Clear session when in menu
-    document.getElementById('menu-view').classList.remove('hidden');
-    document.getElementById('game-view').classList.add('hidden');
-    
-    const grid = document.getElementById('sets-grid');
-    grid.innerHTML = '';
-    
-    const totalSets = Math.ceil(vocabularyData.length / (VERBS_PER_SET * SENTS_PER_VERB));
-
-    for (let i = 0; i < totalSets; i++) {
-        const masteredInSet = getMasteredCountForSet(i);
-        const pct = (masteredInSet / VERBS_PER_SET) * 100;
-        
-        grid.innerHTML += `
-            <div class="set-btn" onclick="prepareSet(${i})">
-                <strong>Set ${i + 1}</strong>
-                <div class="progress-bar"><div class="progress-fill" style="width: ${pct}%"></div></div>
-                <small>${masteredInSet} / ${VERBS_PER_SET} Verbs Mastered</small>
-            </div>
-        `;
-    }
-}
-
-// Filter sentences to ONLY show unmastered verbs
-function prepareSet(setNum) {
-    const start = setNum * (VERBS_PER_SET * SENTS_PER_VERB);
-    const end = start + (VERBS_PER_SET * SENTS_PER_VERB);
-    const setSentences = vocabularyData.slice(start, end);
-    
-    const masteryData = JSON.parse(localStorage.getItem('mastery_tracking') || '{}');
-    
-    // Only include sentences where the Verb-Pair mastery is < 4
-    currentSessionData = setSentences.filter(item => (masteryData[item.pair] || 0) < 4);
-    
-    if (currentSessionData.length === 0) {
-        alert("You have mastered all verbs in this set!");
-        return;
-    }
-
-    currentSessionData.sort(() => Math.random() - 0.5);
-    currentIdx = 0;
-    currentSetId = setNum;
-    saveSession();
-    showGame();
-}
-
-function saveSession() {
-    const session = {
-        data: currentSessionData,
-        idx: currentIdx,
-        setId: currentSetId
+    // SRS Timings in Milliseconds
+    const SRS_INTERVALS = {
+        1: 48 * 60 * 60 * 1000,   // 48 Hours
+        2: 7 * 24 * 60 * 60 * 1000, // 7 Days
+        3: 30 * 24 * 60 * 60 * 1000 // 30 Days
     };
-    localStorage.setItem('active_session', JSON.stringify(session));
-}
 
-function showGame() {
-    document.getElementById('menu-view').classList.add('hidden');
-    document.getElementById('game-view').classList.remove('hidden');
-    loadQuestion();
-}
-
-function loadQuestion() {
-    const grid = document.getElementById('options-grid');
-    const nextBtn = document.getElementById('next-btn');
-    grid.innerHTML = ''; 
-    nextBtn.classList.add('hidden'); // Hide until answered
-    document.getElementById('translation-text').innerText = "";
-    
-    const item = currentSessionData[currentIdx];
-    document.getElementById('progress-text').innerText = `Sentence ${currentIdx + 1} / ${currentSessionData.length}`;
-    document.getElementById('sentence-text').innerText = item.sentence;
-    
-    const options = ["an", "auf", "für", "mit", "über", "von", "zu", "um", "vor", "bei"];
-    let choices = [item.answer];
-    while(choices.length < 4) {
-        let r = options[Math.floor(Math.random() * options.length)];
-        if(!choices.includes(r)) choices.push(r);
+    function init() {
+        if (typeof vocabularyData === 'undefined') return;
+        renderMenu();
     }
-    choices.sort(() => Math.random() - 0.5);
 
-    choices.forEach(opt => {
-        const btn = document.createElement('button');
-        btn.className = 'opt-btn';
-        btn.innerText = opt;
-        btn.onclick = () => handleAnswer(opt, item.answer, btn);
-        grid.appendChild(btn);
-    });
-}
+    // --- Menu & SRS Check ---
+    function renderMenu() {
+        document.getElementById('menu-view').classList.remove('hidden');
+        document.getElementById('game-view').classList.add('hidden');
+        
+        const grid = document.getElementById('sets-grid');
+        const srsContainer = document.getElementById('srs-due-container');
+        grid.innerHTML = '';
+        srsContainer.innerHTML = '';
 
-function handleAnswer(selected, correct, btn) {
-    const item = currentSessionData[currentIdx];
-    const buttons = document.querySelectorAll('.opt-btn');
-    buttons.forEach(b => b.style.pointerEvents = 'none');
+        // Check for SRS Reviews Due
+        const dueVerbs = getDueSRSVerbs();
+        if (dueVerbs.length > 0) {
+            srsContainer.innerHTML = `
+                <div class="srs-banner" onclick="startSRSReview()">
+                    🔥 ${dueVerbs.length} Scheduled Reviews Due
+                </div>
+            `;
+        }
 
-    if (selected === correct) {
-        btn.classList.add('correct');
-        updateMastery(item.pair, true);
-    } else {
-        btn.classList.add('wrong');
-        buttons.forEach(b => { if(b.innerText === correct) b.classList.add('correct'); });
-        updateMastery(item.pair, false);
+        const totalSets = Math.ceil(vocabularyData.length / (VERBS_PER_SET * SENTS_PER_VERB));
+        for (let i = 0; i < totalSets; i++) {
+            const mastered = getMasteredCountForSet(i);
+            const pct = (mastered / VERBS_PER_SET) * 100;
+            
+            grid.innerHTML += `
+                <div class="set-card">
+                    <div class="set-info" onclick="startLearningSet(${i})">
+                        <strong>Set ${i + 1}</strong>
+                        <div class="progress-bar"><div class="progress-fill" style="width: ${pct}%"></div></div>
+                        <small>${mastered} / ${VERBS_PER_SET} Verbs Mastered</small>
+                    </div>
+                    <button class="reset-btn" onclick="resetSet(${i})">Reset</button>
+                </div>
+            `;
+        }
     }
-    
-    document.getElementById('translation-text').innerText = item.translation;
-    document.getElementById('next-btn').classList.remove('hidden'); // Show Next button
-}
 
-function nextQuestion() {
-    currentIdx++;
-    if (currentIdx < currentSessionData.length) {
-        saveSession();
+    // --- Session Starters ---
+    function startLearningSet(setNum) {
+        sessionMode = 'learning';
+        const start = setNum * 60;
+        const setSentences = vocabularyData.slice(start, start + 60);
+        const mastery = getMasteryStore();
+        
+        // Only show sentences for verbs < 4 correct in current learning stage
+        currentSessionData = setSentences.filter(s => (mastery[s.pair]?.count || 0) < 4);
+        
+        if (currentSessionData.length === 0) {
+            // If all 4/4, offer immediate review
+            if(confirm("All words mastered in this set. Start a quick review session?")) {
+                startPostReview(setSentences);
+            }
+            return;
+        }
+
+        currentSessionData.sort(() => Math.random() - 0.5);
+        beginGame();
+    }
+
+    function startPostReview(sentences) {
+        sessionMode = 'post-review';
+        // Pick 1 random sentence for each unique verb in the set
+        currentSessionData = getOneSentencePerVerb(sentences);
+        beginGame();
+    }
+
+    function startSRSReview() {
+        sessionMode = 'srs';
+        const dueVerbs = getDueSRSVerbs();
+        const dueSentences = vocabularyData.filter(s => dueVerbs.includes(s.pair));
+        currentSessionData = getOneSentencePerVerb(dueSentences);
+        beginGame();
+    }
+
+    function beginGame() {
+        currentIdx = 0;
+        document.getElementById('menu-view').classList.add('hidden');
+        document.getElementById('game-view').classList.remove('hidden');
         loadQuestion();
-    } else {
-        alert("Set Finished!");
-        localStorage.removeItem('active_session');
+    }
+
+    // --- Game Logic ---
+    function loadQuestion() {
+        const item = currentSessionData[currentIdx];
+        const grid = document.getElementById('options-grid');
+        const nextBtn = document.getElementById('next-btn');
+        
+        grid.innerHTML = '';
+        nextBtn.classList.add('hidden');
+        document.getElementById('translation-text').innerText = "";
+        document.getElementById('progress-text').innerText = `${currentIdx + 1} / ${currentSessionData.length}`;
+        document.getElementById('sentence-text').innerText = item.sentence;
+
+        const options = generateOptions(item.answer);
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'opt-btn';
+            btn.innerText = opt;
+            btn.onclick = () => handleAnswer(opt, item.answer, btn);
+            grid.appendChild(btn);
+        });
+    }
+
+    function handleAnswer(selected, correct, btn) {
+        const item = currentSessionData[currentIdx];
+        const buttons = document.querySelectorAll('.opt-btn');
+        buttons.forEach(b => b.style.pointerEvents = 'none');
+
+        if (selected === correct) {
+            btn.classList.add('correct');
+            processCorrect(item.pair);
+        } else {
+            btn.classList.add('wrong');
+            buttons.forEach(b => { if(b.innerText === correct) b.classList.add('correct'); });
+            processWrong(item.pair);
+        }
+        
+        document.getElementById('translation-text').innerText = item.translation;
+        document.getElementById('next-btn').classList.remove('hidden');
+    }
+
+    function nextQuestion() {
+        currentIdx++;
+        if (currentIdx < currentSessionData.length) {
+            loadQuestion();
+        } else {
+            if (sessionMode === 'learning') {
+                if(confirm("Set Finished! Start the Post-Session Review now?")) {
+                    startPostReview(currentSessionData);
+                    return;
+                }
+            }
+            renderMenu();
+        }
+    }
+
+    // --- Mastery & SRS Core ---
+    function getMasteryStore() { return JSON.parse(localStorage.getItem('verb_mastery') || '{}'); }
+
+    function processCorrect(pair) {
+        let store = getMasteryStore();
+        if (!store[pair]) store[pair] = { count: 0, stage: 0, nextReview: 0 };
+
+        if (sessionMode === 'learning') {
+            store[pair].count++;
+            if (store[pair].count >= 4) {
+                // Just Mastered -> Schedule 48h review
+                store[pair].stage = 1; 
+                store[pair].nextReview = Date.now() + SRS_INTERVALS[1];
+            }
+        } else {
+            // It's a review (Post or SRS)
+            if (store[pair].stage < 3) {
+                store[pair].stage++;
+                store[pair].nextReview = Date.now() + SRS_INTERVALS[store[pair].stage] || 0;
+            } else {
+                store[pair].stage = 4; // Fully Mastered
+                store[pair].nextReview = 0;
+            }
+        }
+        localStorage.setItem('verb_mastery', JSON.stringify(store));
+    }
+
+    function processWrong(pair) {
+        let store = getMasteryStore();
+        // FAILURE: Reset everything to zero
+        store[pair] = { count: 0, stage: 0, nextReview: 0 };
+        localStorage.setItem('verb_mastery', JSON.stringify(store));
+    }
+
+    function getDueSRSVerbs() {
+        const store = getMasteryStore();
+        const now = Date.now();
+        return Object.keys(store).filter(pair => store[pair].nextReview > 0 && now >= store[pair].nextReview);
+    }
+
+    function getOneSentencePerVerb(sentences) {
+        const grouped = {};
+        sentences.forEach(s => {
+            if (!grouped[s.pair]) grouped[s.pair] = [];
+            grouped[s.pair].push(s);
+        });
+        return Object.values(grouped).map(arr => arr[Math.floor(Math.random() * arr.length)]);
+    }
+
+    function generateOptions(correct) {
+        const preps = ["an", "auf", "für", "mit", "über", "von", "zu", "um", "vor", "bei"];
+        let opts = [correct];
+        while(opts.length < 4) {
+            let r = preps[Math.floor(Math.random() * preps.length)];
+            if(!opts.includes(r)) opts.push(r);
+        }
+        return opts.sort(() => Math.random() - 0.5);
+    }
+
+    function getMasteredCountForSet(setNum) {
+        const start = setNum * VERBS_PER_SET;
+        const allPairs = [...new Set(vocabularyData.map(s => s.pair))].slice(start, start + VERBS_PER_SET);
+        const store = getMasteryStore();
+        return allPairs.filter(p => store[p] && store[p].count >= 4).length;
+    }
+
+    function resetSet(setNum) {
+        if (!confirm("Are you sure? This will delete all progress for these 15 verbs.")) return;
+        const start = setNum * VERBS_PER_SET;
+        const allPairs = [...new Set(vocabularyData.map(s => s.pair))].slice(start, start + VERBS_PER_SET);
+        let store = getMasteryStore();
+        allPairs.forEach(p => delete store[p]);
+        localStorage.setItem('verb_mastery', JSON.stringify(store));
         renderMenu();
     }
-}
 
-function updateMastery(pairName, isCorrect) {
-    let masteryData = JSON.parse(localStorage.getItem('mastery_tracking') || '{}');
-    if (!masteryData[pairName]) masteryData[pairName] = 0;
+    function goBack() { renderMenu(); }
 
-    if (isCorrect) {
-        masteryData[pairName] += 1;
-    } else {
-        masteryData[pairName] = 0; // Reset progress if wrong
-    }
-    localStorage.setItem('mastery_tracking', JSON.stringify(masteryData));
-}
-
-function getMasteredCountForSet(setNum) {
-    const start = setNum * VERBS_PER_SET;
-    const end = start + VERBS_PER_SET;
-    const masteryData = JSON.parse(localStorage.getItem('mastery_tracking') || '{}');
-    const allPairs = [...new Set(vocabularyData.map(item => item.pair))];
-    const setPairs = allPairs.slice(start, end);
-    return setPairs.filter(p => (masteryData[p] || 0) >= 4).length;
-}
-
-// This makes the "Back" button in the UI work
-function showMenu() {
-    if(confirm("Do you want to save your progress and go back to the menu?")) {
-        saveSession(); // Save exactly where we are
-        renderMenu();
-    }
-}
-
-window.onload = init;
+    window.onload = init;
 </script>
 </body>
 </html>
