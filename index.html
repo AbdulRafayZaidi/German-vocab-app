@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>German Preposition Master</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; padding: 20px; background: #f4f4f9; }
+        .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
+        .sentence { font-size: 1.5rem; margin-bottom: 1rem; }
+        input { font-size: 1.2rem; padding: 5px; width: 100px; text-align: center; border: 2px solid #ddd; }
+        .feedback { margin-top: 1rem; font-weight: bold; height: 1.2rem; }
+        .translation { color: #666; font-style: italic; margin-top: 0.5rem; }
+        .stats { margin-top: 2rem; font-size: 0.8rem; color: #888; border-top: 1px solid #eee; pt: 10px; }
+        button { margin-top: 1rem; padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div id="game-area">
+        <p class="sentence" id="sentence-display"></p>
+        <input type="text" id="user-input" autocomplete="off" placeholder="...">
+        <p class="translation" id="translation-display"></p>
+        <div class="feedback" id="feedback"></div>
+        <button onclick="checkAnswer()" id="submit-btn">Check</button>
+    </div>
+    
+    <div class="stats">
+        Progress: <span id="score">0</span> mastered
+    </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+    let currentIndex = 0;
+    let masteredCount = parseInt(localStorage.getItem('masteredCount')) || 0;
+
+    const sentenceEl = document.getElementById('sentence-display');
+    const translationEl = document.getElementById('translation-display');
+    const inputEl = document.getElementById('user-input');
+    const feedbackEl = document.getElementById('feedback');
+    const scoreEl = document.getElementById('score');
+
+    function loadQuestion() {
+        currentIndex = Math.floor(Math.random() * vocabularyData.length);
+        const item = vocabularyData[currentIndex];
+        sentenceEl.innerText = item.sentence;
+        translationEl.innerText = item.translation;
+        inputEl.value = "";
+        feedbackEl.innerText = "";
+        inputEl.style.borderColor = "#ddd";
+        scoreEl.innerText = masteredCount;
+    }
+
+    function checkAnswer() {
+        const userValue = inputEl.value.trim().toLowerCase();
+        const correctAnswer = vocabularyData[currentIndex].answer.toLowerCase();
+
+        if (userValue === correctAnswer) {
+            feedbackEl.innerText = "Richtig! ✨";
+            feedbackEl.style.color = "green";
+            masteredCount++;
+            localStorage.setItem('masteredCount', masteredCount);
+            setTimeout(loadQuestion, 1500);
+        } else {
+            feedbackEl.innerText = `Falsch. Hint: ${vocabularyData[currentIndex].hint}`;
+            feedbackEl.style.color = "red";
+            inputEl.style.borderColor = "red";
+        }
+    }
+
+    // Allow "Enter" key to submit
+    inputEl.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") checkAnswer();
+    });
+
+    loadQuestion();
+</script>
+</body>
+</html>
