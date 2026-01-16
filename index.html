@@ -3,79 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>German Preposition Master</title>
+    <title>German Cloze Master</title>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; padding: 20px; background: #f4f4f9; }
-        .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
-        .sentence { font-size: 1.5rem; margin-bottom: 1rem; }
-        input { font-size: 1.2rem; padding: 5px; width: 100px; text-align: center; border: 2px solid #ddd; }
-        .feedback { margin-top: 1rem; font-weight: bold; height: 1.2rem; }
-        .translation { color: #666; font-style: italic; margin-top: 0.5rem; }
-        .stats { margin-top: 2rem; font-size: 0.8rem; color: #888; border-top: 1px solid #eee; pt: 10px; }
-        button { margin-top: 1rem; padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        :root { --primary: #2563eb; --success: #22c55e; --error: #ef4444; --bg: #f8fafc; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; }
+        .container { width: 100%; max-width: 600px; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        
+        /* Menu Styling */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .set-btn { padding: 20px; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; background: white; transition: 0.2s; text-align: left; }
+        .set-btn:hover { border-color: var(--primary); background: #eff6ff; }
+        .progress-bar { height: 8px; background: #e2e8f0; border-radius: 4px; margin-top: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--success); width: 0%; transition: width 0.3s; }
+        
+        /* Game Styling */
+        .hidden { display: none; }
+        .sentence { font-size: 1.4rem; line-height: 1.6; margin-bottom: 20px; min-height: 60px; }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .opt-btn { padding: 15px; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; font-size: 1.1rem; background: white; }
+        .opt-btn:hover { background: #f1f5f9; }
+        .correct { background: var(--success) !important; color: white; border-color: var(--success); }
+        .wrong { background: var(--error) !important; color: white; border-color: var(--error); }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .back-btn { background: none; border: none; color: var(--primary); cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <div id="game-area">
-        <p class="sentence" id="sentence-display"></p>
-        <input type="text" id="user-input" autocomplete="off" placeholder="...">
-        <p class="translation" id="translation-display"></p>
-        <div class="feedback" id="feedback"></div>
-        <button onclick="checkAnswer()" id="submit-btn">Check</button>
+<div class="container">
+    <div id="menu-view">
+        <h1 style="margin-top:0">German Sets</h1>
+        <div id="mistake-container"></div>
+        <div class="grid" id="sets-grid"></div>
     </div>
-    
-    <div class="stats">
-        Progress: <span id="score">0</span> mastered
+
+    <div id="game-view" class="hidden">
+        <div class="header">
+            <button class="back-btn" onclick="showMenu()">← Back</button>
+            <div id="progress-text">Sentence 1 / 15</div>
+        </div>
+        <div class="sentence" id="sentence-text"></div>
+        <div class="options-grid" id="options-grid"></div>
+        <p id="translation-text" style="color: #64748b; font-style: italic; margin-top: 20px;"></p>
     </div>
 </div>
 
 <script src="data.js"></script>
 <script>
-    let currentIndex = 0;
-    let masteredCount = parseInt(localStorage.getItem('masteredCount')) || 0;
+    const SET_SIZE = 15;
+    let currentSet = [];
+    let currentIdx = 0;
+    let currentSetId = null;
 
-    const sentenceEl = document.getElementById('sentence-display');
-    const translationEl = document.getElementById('translation-display');
-    const inputEl = document.getElementById('user-input');
-    const feedbackEl = document.getElementById('feedback');
-    const scoreEl = document.getElementById('score');
+    // --- Core Logic ---
 
-    function loadQuestion() {
-        currentIndex = Math.floor(Math.random() * vocabularyData.length);
-        const item = vocabularyData[currentIndex];
-        sentenceEl.innerText = item.sentence;
-        translationEl.innerText = item.translation;
-        inputEl.value = "";
-        feedbackEl.innerText = "";
-        inputEl.style.borderColor = "#ddd";
-        scoreEl.innerText = masteredCount;
+    function init() {
+        renderMenu();
     }
 
-    function checkAnswer() {
-        const userValue = inputEl.value.trim().toLowerCase();
-        const correctAnswer = vocabularyData[currentIndex].answer.toLowerCase();
+    function renderMenu() {
+        document.getElementById('menu-view').classList.remove('hidden');
+        document.getElementById('game-view').classList.add('hidden');
+        
+        const grid = document.getElementById('sets-grid');
+        const mistakeContainer = document.getElementById('mistake-container');
+        grid.innerHTML = '';
+        mistakeContainer.innerHTML = '';
 
-        if (userValue === correctAnswer) {
-            feedbackEl.innerText = "Richtig! ✨";
-            feedbackEl.style.color = "green";
-            masteredCount++;
-            localStorage.setItem('masteredCount', masteredCount);
-            setTimeout(loadQuestion, 1500);
-        } else {
-            feedbackEl.innerText = `Falsch. Hint: ${vocabularyData[currentIndex].hint}`;
-            feedbackEl.style.color = "red";
-            inputEl.style.borderColor = "red";
+        // Render Mistakes Set
+        const mistakes = JSON.parse(localStorage.getItem('mistakes') || '[]');
+        if (mistakes.length > 0) {
+            mistakeContainer.innerHTML = `
+                <div class="set-btn" style="border-color: #f87171; width: 100%; box-sizing: border-box; margin-bottom: 20px;" onclick="startMistakes()">
+                    <strong>Review Mistakes</strong>
+                    <p>${mistakes.length} items to practice</p>
+                </div>
+            `;
+        }
+
+        // Render Normal Sets
+        const totalSets = Math.ceil(vocabularyData.length / SET_SIZE);
+        for (let i = 0; i < totalSets; i++) {
+            const completed = JSON.parse(localStorage.getItem(`set_${i}_done`) || '[]');
+            const pct = (completed.length / SET_SIZE) * 100;
+            
+            grid.innerHTML += `
+                <div class="set-btn" onclick="startSet(${i})">
+                    <strong>Set ${i + 1}</strong>
+                    <div class="progress-bar"><div class="progress-fill" style="width: ${pct}%"></div></div>
+                    <small>${completed.length} / ${SET_SIZE} Mastered</small>
+                </div>
+            `;
         }
     }
 
-    // Allow "Enter" key to submit
-    inputEl.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") checkAnswer();
-    });
+    function startSet(setNum) {
+        currentSetId = setNum;
+        currentSet = vocabularyData.slice(setNum * SET_SIZE, (setNum + 1) * SET_SIZE);
+        currentIdx = 0;
+        showGame();
+    }
 
-    loadQuestion();
-</script>
-</body>
-</html>
+    function startMistakes() {
+        currentSetId = 'mistakes';
+        const mistakeIds = JSON.parse(localStorage.getItem('mistakes') || '[]');
+        currentSet = vocabularyData.filter(item => mistakeIds.includes(item.id));
+        currentIdx = 0;
+        showGame();
+    }
+
+    function showGame() {
+        document.getElementById('menu-view').classList.add('hidden');
+        document.getElementById('game-view').classList.remove('hidden');
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        const item = currentSet[currentIdx];
+        document.getElementById('progress-text').innerText = `Sentence ${currentIdx + 1} / ${currentSet.length}`;
+        document.getElementById('sentence-text').innerText = item.sentence;
+        document.getElementById('translation-text').innerText = ""; // Hide until answered
+        
+        const options = generateOptions(item.answer);
+        const grid = document.getElementById('options-grid');
+        grid.innerHTML = '';
+
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'opt-btn';
+            btn.innerText = opt;
+            btn.onclick = () => handleAnswer(opt, item.answer, btn);
+            grid.appendChild(btn);
+        });
+    }
+
+    function generateOptions(correct) {
+        const preps = ["an", "auf", "für", "mit", "über", "von", "zu", "um", "vor", "bei"];
+        let opts = [correct];
+        while(opts.length < 4) {
+            let r = preps[Math.floor(Math.random() * preps.length)];
+            if(!opts.includes(r)) opts.push(r);
+        }
+        return opts.sort(() => Math.random() - 0.5);
+    }
+
+    function handleAnswer(selected, correct, btn) {
+        const item = currentSet[currentIdx];
+        document.getElementById('translation-text').innerText = item.translation;
+
+        if (selected === correct) {
+            btn.classList.add('correct');
+            saveProgress(item.id);
+            // If it was a mistake, remove it from the list
+            removeFromMistakes(item.id);
+            setTimeout(nextQuestion, 1200);
+        } else {
+            btn.classList.add('wrong');
+            addToMistakes(item.id);
+            // Highlight the correct one
+            Array.from(document.getElementsByClassName('opt-btn')).forEach(b => {
+                if(b.innerText === correct) b.classList.add('correct');
+            });
+            setTimeout(nextQuestion, 2000);
+        }
+    }
+
+    function nextQuestion() {
+        currentIdx++;
+        if (currentIdx < currentSet.length) {
+            loadQuestion();
+        } else {
+            alert("Set Complete!");
+            showMenu();
+        }
+    }
+
+    // --- Progress Storage ---
+
+    function saveProgress(id) {
+        if (currentSetId === 'mistakes') return;
+        let done = JSON.parse(localStorage.getItem(`set_${currentSetId}_done
