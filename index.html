@@ -3,36 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>German SRS Master - Testing Mode</title>
+    <title>German SRS - Granular Coding</title>
     <style>
-        :root { --primary: #2563eb; --success: #22c55e; --error: #ef4444; --bg: #f8fafc; --border: #e2e8f0; }
+        :root { 
+            --primary: #2563eb; 
+            --success: #16a34a; 
+            --error: #dc2626; 
+            --bg: #f8fafc; 
+            /* Specific Case Colors */
+            --acc-blue: #2563eb; 
+            --dat-green: #16a34a; 
+            --gen-orange: #ea580c; 
+        }
+
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; color: #1e293b; }
         .container { width: 100%; max-width: 500px; background: white; padding: 2rem; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         
-        /* Menu Styling */
-        .set-card { border: 1px solid var(--border); padding: 1.5rem; border-radius: 12px; margin-bottom: 1rem; background: #fff; }
-        .progress-container { margin: 15px 0; }
-        .progress-bar { height: 10px; background: #f1f5f9; border-radius: 5px; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--success); transition: width 0.5s ease; }
-        
-        .btn-main { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-bottom: 8px; }
-        .btn-review { background: #f59e0b; color: white; width: 100%; padding: 10px; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 8px; font-weight: 600; }
-        .btn-reset { background: white; color: var(--error); border: 1px solid var(--error); width: 100%; padding: 8px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
-        
-        .srs-banner { background: #fef2f2; border: 2px solid #fee2e2; color: #dc2626; padding: 1rem; border-radius: 12px; text-align: center; font-weight: bold; margin-bottom: 1.5rem; cursor: pointer; }
+        /* Highlight Classes */
+        .highlight-acc { color: var(--acc-blue); font-weight: bold; border-bottom: 2px solid var(--acc-blue); }
+        .highlight-dat { color: var(--dat-green); font-weight: bold; border-bottom: 2px solid var(--dat-green); }
+        .highlight-gen { color: var(--gen-orange); font-weight: bold; border-bottom: 2px solid var(--gen-orange); }
+
+        /* Badge Styles */
+        .case-badge { font-size: 0.7rem; font-weight: 800; padding: 4px 10px; border-radius: 20px; color: white; display: inline-block; margin-bottom: 10px; }
+        .bg-acc { background-color: var(--acc-blue); }
+        .bg-dat { background-color: var(--dat-green); }
+        .bg-gen { background-color: var(--gen-orange); }
+
+        /* General Layout */
+        .set-card { border: 1px solid #e2e8f0; padding: 1.2rem; border-radius: 12px; margin-bottom: 1rem; }
+        .progress-bar { height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; margin: 10px 0; }
+        .progress-fill { height: 100%; background: var(--success); transition: width 0.5s; }
+        .btn-main { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .btn-review { background: #f59e0b; color: white; width: 100%; padding: 10px; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 5px; font-weight: 600; }
+        .btn-reset { color: var(--error); background: none; border: none; width: 100%; cursor: pointer; font-size: 0.8rem; text-decoration: underline; margin-top: 5px; }
 
         /* Game UI */
         .hidden { display: none; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-        .sentence { font-size: 1.5rem; text-align: center; margin: 2rem 0; min-height: 80px; font-weight: 500; }
+        .sentence { font-size: 1.4rem; text-align: center; margin: 2rem 0; min-height: 80px; color: #334155; line-height: 1.8; }
         .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .opt-btn { padding: 18px; border: 2px solid var(--border); border-radius: 10px; background: white; cursor: pointer; font-size: 1.1rem; transition: all 0.2s; }
+        .opt-btn { padding: 18px; border: 2px solid #e2e8f0; border-radius: 10px; background: white; cursor: pointer; font-size: 1.1rem; font-weight: 500; }
         .correct { background: var(--success) !important; color: white; border-color: var(--success); }
         .wrong { background: var(--error) !important; color: white; border-color: var(--error); }
-        
-        .game-footer { margin-top: 3rem; text-align: center; }
-        .next-btn { width: 100%; padding: 18px; background: #1e293b; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 1.1rem; font-weight: bold; }
-        .translation { color: #64748b; font-style: italic; margin-bottom: 1.5rem; min-height: 1.2rem; }
+        .next-btn { width: 100%; padding: 18px; background: #1e293b; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 1.1rem; font-weight: bold; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -45,14 +58,21 @@
     </div>
 
     <div id="game-view" class="hidden">
-        <div class="header">
-            <button onclick="goBack()" style="background:none; border:none; color:var(--primary); cursor:pointer; font-weight:600;">← Exit</button>
-            <span id="progress-text" style="color:#64748b; font-weight:600;"></span>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <button onclick="goBack()" style="background:none; border:none; color:var(--primary); cursor:pointer;">← Exit</button>
+            <span id="progress-text" style="color:#64748b; font-size: 0.9rem;"></span>
         </div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <div id="case-badge" class="case-badge"></div>
+        </div>
+        
         <div class="sentence" id="sentence-text"></div>
+        
         <div class="options-grid" id="options-grid"></div>
-        <div class="game-footer">
-            <div class="translation" id="translation-text"></div>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <div id="translation-text" style="color: #64748b; font-style: italic; margin-bottom: 15px; min-height: 1.2rem;"></div>
             <button id="next-btn" class="next-btn hidden" onclick="nextQuestion()">Next Sentence →</button>
         </div>
     </div>
@@ -60,98 +80,60 @@
 
 <script src="data.js"></script>
 <script>
-    /** CONFIGURATION **/
-    const VERBS_PER_SET = 3; // Change to 15 for production
-    const SENTS_PER_VERB = 4;
-    
+    const VERBS_PER_SET = 3; 
     let currentSessionData = [];
     let currentIdx = 0;
     let sessionMode = 'learning'; 
 
-    const SRS_INTERVALS = {
-        1: 48 * 60 * 60 * 1000,   // Stage 1: 48h
-        2: 7 * 24 * 60 * 60 * 1000, // Stage 2: 7d
-        3: 30 * 24 * 60 * 60 * 1000 // Stage 3: 30d
-    };
+    const SRS_INTERVALS = { 1: 172800000, 2: 604800000, 3: 2592000000 };
 
-    function init() {
-        if (typeof vocabularyData === 'undefined') return;
-        renderMenu();
-    }
+    function init() { if (typeof vocabularyData !== 'undefined') renderMenu(); }
 
     function renderMenu() {
         document.getElementById('menu-view').classList.remove('hidden');
         document.getElementById('game-view').classList.add('hidden');
-        
         const grid = document.getElementById('sets-grid');
         const srsContainer = document.getElementById('srs-due-container');
         grid.innerHTML = '';
         srsContainer.innerHTML = '';
 
-        // SRS Banner
-        const dueVerbs = getDueSRSVerbs();
-        if (dueVerbs.length > 0) {
-            srsContainer.innerHTML = `<div class="srs-banner" onclick="startSRSReview()">📢 ${dueVerbs.length} Scheduled Reviews Ready</div>`;
-        }
+        const due = getDueSRSVerbs();
+        if (due.length > 0) srsContainer.innerHTML = `<div class="btn-review" style="text-align:center; padding:15px; margin-bottom:20px;" onclick="startSRSReview()">🔥 ${due.length} Reviews Due</div>`;
 
-        const totalSets = Math.ceil(vocabularyData.length / (VERBS_PER_SET * SENTS_PER_VERB));
-        
+        const totalSets = Math.ceil(vocabularyData.length / (VERBS_PER_SET * 4));
         for (let i = 0; i < totalSets; i++) {
-            const masteredCount = getMasteredCountForSet(i);
-            const isFullyMastered = masteredCount === VERBS_PER_SET;
-            const pct = (masteredCount / VERBS_PER_SET) * 100;
-            
-            let cardHtml = `
+            const mastered = getMasteredCountForSet(i);
+            const isFull = mastered === VERBS_PER_SET;
+            grid.innerHTML += `
                 <div class="set-card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <strong>Set ${i + 1}</strong>
-                        <span style="font-size:0.8rem; color:#64748b">${masteredCount}/${VERBS_PER_SET} Verbs</span>
-                    </div>
-                    <div class="progress-container">
-                        <div class="progress-bar"><div class="progress-fill" style="width: ${pct}%"></div></div>
-                    </div>
-            `;
-
-            if (isFullyMastered) {
-                cardHtml += `
-                    <button class="btn-review" onclick="startSetReview(${i})">Review Set (1 Sentence/Verb)</button>
-                    <button class="btn-reset" onclick="resetSet(${i})">Reset All Progress</button>
-                `;
-            } else {
-                cardHtml += `<button class="btn-main" onclick="startLearningSet(${i})">Start Learning</button>`;
-            }
-
-            cardHtml += `</div>`;
-            grid.innerHTML += cardHtml;
+                    <strong>Set ${i + 1}</strong> (${mastered}/${VERBS_PER_SET} Verbs)
+                    <div class="progress-bar"><div class="progress-fill" style="width: ${(mastered/VERBS_PER_SET)*100}%"></div></div>
+                    ${isFull ? `<button class="btn-review" onclick="startSetReview(${i})">Review Set</button>
+                                <button class="btn-reset" onclick="resetSet(${i})">Reset</button>` : 
+                               `<button class="btn-main" onclick="startLearningSet(${i})">Start Learning</button>`}
+                </div>`;
         }
     }
 
-    // --- Data Filtering ---
-    function startLearningSet(setNum) {
+    function startLearningSet(n) {
         sessionMode = 'learning';
-        const start = setNum * (VERBS_PER_SET * SENTS_PER_VERB);
-        const setSents = vocabularyData.slice(start, start + (VERBS_PER_SET * SENTS_PER_VERB));
+        const start = n * (VERBS_PER_SET * 4);
         const store = getStore();
-        
-        // Filter: Only sentences for verbs not yet mastered (count < 4)
-        currentSessionData = setSents.filter(s => (store[s.pair]?.count || 0) < 4);
+        currentSessionData = vocabularyData.slice(start, start + (VERBS_PER_SET * 4)).filter(s => (store[s.pair]?.count || 0) < 4);
         currentSessionData.sort(() => Math.random() - 0.5);
         beginGame();
     }
 
-    function startSetReview(setNum) {
+    function startSetReview(n) {
         sessionMode = 'review';
-        const start = setNum * (VERBS_PER_SET * SENTS_PER_VERB);
-        const setSents = vocabularyData.slice(start, start + (VERBS_PER_SET * SENTS_PER_VERB));
-        currentSessionData = getOneSentencePerVerb(setSents);
+        const start = n * (VERBS_PER_SET * 4);
+        currentSessionData = getOneSentencePerVerb(vocabularyData.slice(start, start + (VERBS_PER_SET * 4)));
         beginGame();
     }
 
     function startSRSReview() {
         sessionMode = 'review';
-        const dueVerbs = getDueSRSVerbs();
-        const sents = vocabularyData.filter(s => dueVerbs.includes(s.pair));
-        currentSessionData = getOneSentencePerVerb(sents);
+        currentSessionData = getOneSentencePerVerb(vocabularyData.filter(s => getDueSRSVerbs().includes(s.pair)));
         beginGame();
     }
 
@@ -162,124 +144,79 @@
         loadQuestion();
     }
 
-    // --- Game Engine ---
     function loadQuestion() {
         const item = currentSessionData[currentIdx];
-        const grid = document.getElementById('options-grid');
-        grid.innerHTML = '';
+        const badge = document.getElementById('case-badge');
+        const sentenceEl = document.getElementById('sentence-text');
+        
+        document.getElementById('progress-text').innerText = `${currentIdx + 1} / ${currentSessionData.length}`;
         document.getElementById('next-btn').classList.add('hidden');
         document.getElementById('translation-text').innerText = "";
-        document.getElementById('progress-text').innerText = `${currentIdx + 1} / ${currentSessionData.length}`;
-        document.getElementById('sentence-text').innerText = item.sentence;
+        
+        // 1. Set Badge
+        badge.className = `case-badge bg-${item.case}`;
+        badge.innerText = item.case.toUpperCase();
 
-        const options = generateOptions(item.answer);
-        options.forEach(opt => {
-            const btn = document.createElement('button');
-            btn.className = 'opt-btn';
-            btn.innerText = opt;
-            btn.onclick = () => handleAnswer(opt, item.answer, btn);
-            grid.appendChild(btn);
+        // 2. Process Sentence (Replace [[text]] with color span)
+        let processedSentence = item.sentence.replace('[[', `<span class="highlight-${item.case}">`).replace(']]', '</span>');
+        sentenceEl.innerHTML = processedSentence;
+
+        // 3. Render Options
+        const grid = document.getElementById('options-grid');
+        grid.innerHTML = '';
+        const opts = generateOptions(item.answer);
+        opts.forEach(o => {
+            const b = document.createElement('button');
+            b.className = 'opt-btn';
+            b.innerText = o;
+            b.onclick = () => handleAnswer(o, item.answer, b);
+            grid.appendChild(b);
         });
     }
 
-    function handleAnswer(selected, correct, btn) {
+    function handleAnswer(sel, cor, btn) {
         const item = currentSessionData[currentIdx];
         document.querySelectorAll('.opt-btn').forEach(b => b.style.pointerEvents = 'none');
-
-        if (selected === correct) {
+        if (sel === cor) {
             btn.classList.add('correct');
             processResult(item.pair, true);
         } else {
             btn.classList.add('wrong');
-            document.querySelectorAll('.opt-btn').forEach(b => { if(b.innerText === correct) b.classList.add('correct'); });
+            document.querySelectorAll('.opt-btn').forEach(b => { if(b.innerText === cor) b.classList.add('correct'); });
             processResult(item.pair, false);
         }
-        
         document.getElementById('translation-text').innerText = item.translation;
         document.getElementById('next-btn').classList.remove('hidden');
     }
 
     function nextQuestion() {
         currentIdx++;
-        if (currentIdx < currentSessionData.length) {
-            loadQuestion();
-        } else {
-            renderMenu();
-        }
+        if (currentIdx < currentSessionData.length) loadQuestion(); else renderMenu();
     }
-
-    // --- SRS Logic ---
-    function getStore() { return JSON.parse(localStorage.getItem('verb_mastery_srs') || '{}'); }
 
     function processResult(pair, isCorrect) {
         let store = getStore();
         if (!store[pair]) store[pair] = { count: 0, stage: 0, nextReview: 0 };
-
         if (!isCorrect) {
-            // Failure: Immediate reset to stage 0
             store[pair] = { count: 0, stage: 0, nextReview: 0 };
         } else {
             if (sessionMode === 'learning') {
                 store[pair].count++;
-                if (store[pair].count >= 4) {
-                    store[pair].stage = 1; 
-                    store[pair].nextReview = Date.now() + SRS_INTERVALS[1];
-                }
+                if (store[pair].count >= 4) { store[pair].stage = 1; store[pair].nextReview = Date.now() + SRS_INTERVALS[1]; }
             } else {
-                // Successful Review
                 store[pair].stage++;
-                if (SRS_INTERVALS[store[pair].stage]) {
-                    store[pair].nextReview = Date.now() + SRS_INTERVALS[store[pair].stage];
-                } else {
-                    store[pair].nextReview = 0; // Fully Finished
-                }
+                if (SRS_INTERVALS[store[pair].stage]) store[pair].nextReview = Date.now() + SRS_INTERVALS[store[pair].stage]; else store[pair].nextReview = 0;
             }
         }
         localStorage.setItem('verb_mastery_srs', JSON.stringify(store));
     }
 
-    function getDueSRSVerbs() {
-        const store = getStore();
-        const now = Date.now();
-        return Object.keys(store).filter(p => store[p].nextReview > 0 && now >= store[p].nextReview);
-    }
-
-    function getOneSentencePerVerb(sentences) {
-        const groups = {};
-        sentences.forEach(s => {
-            if(!groups[s.pair]) groups[s.pair] = [];
-            groups[s.pair].push(s);
-        });
-        return Object.values(groups).map(arr => arr[Math.floor(Math.random() * arr.length)]);
-    }
-
-    function generateOptions(correct) {
-        const preps = ["an", "auf", "für", "mit", "über", "von", "zu", "um", "vor", "bei"];
-        let opts = [correct];
-        while(opts.length < 4) {
-            let r = preps[Math.floor(Math.random() * preps.length)];
-            if(!opts.includes(r)) opts.push(r);
-        }
-        return opts.sort(() => Math.random() - 0.5);
-    }
-
-    function getMasteredCountForSet(setNum) {
-        const start = setNum * VERBS_PER_SET;
-        const setPairs = [...new Set(vocabularyData.map(s => s.pair))].slice(start, start + VERBS_PER_SET);
-        const store = getStore();
-        return setPairs.filter(p => store[p] && store[p].count >= 4).length;
-    }
-
-    function resetSet(setNum) {
-        if (!confirm("This will clear all progress for this set. Continue?")) return;
-        const start = setNum * VERBS_PER_SET;
-        const setPairs = [...new Set(vocabularyData.map(s => s.pair))].slice(start, start + VERBS_PER_SET);
-        let store = getStore();
-        setPairs.forEach(p => delete store[p]);
-        localStorage.setItem('verb_mastery_srs', JSON.stringify(store));
-        renderMenu();
-    }
-
+    function getStore() { return JSON.parse(localStorage.getItem('verb_mastery_srs') || '{}'); }
+    function getDueSRSVerbs() { const s = getStore(); const n = Date.now(); return Object.keys(s).filter(p => s[p].nextReview > 0 && n >= s[p].nextReview); }
+    function getOneSentencePerVerb(sents) { const g = {}; sents.forEach(s => { if(!g[s.pair]) g[s.pair] = []; g[s.pair].push(s); }); return Object.values(g).map(a => a[Math.floor(Math.random() * a.length)]); }
+    function generateOptions(c) { const p = ["an", "auf", "für", "mit", "über", "von", "zu", "um", "vor", "bei"]; let o = [c]; while(o.length < 4) { let r = p[Math.floor(Math.random()*p.length)]; if(!o.includes(r)) o.push(r); } return o.sort(() => Math.random() - 0.5); }
+    function getMasteredCountForSet(n) { const p = [...new Set(vocabularyData.map(s => s.pair))].slice(n*VERBS_PER_SET, (n+1)*VERBS_PER_SET); const s = getStore(); return p.filter(x => s[x] && s[x].count >= 4).length; }
+    function resetSet(n) { if (!confirm("Reset progress?")) return; const p = [...new Set(vocabularyData.map(s => s.pair))].slice(n*VERBS_PER_SET, (n+1)*VERBS_PER_SET); let s = getStore(); p.forEach(x => delete s[x]); localStorage.setItem('verb_mastery_srs', JSON.stringify(s)); renderMenu(); }
     function goBack() { renderMenu(); }
     window.onload = init;
 </script>
