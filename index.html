@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>German Cloze Master</title>
     <style>
+        .next-btn { 
+    margin-top: 20px; 
+    padding: 12px 24px; 
+    background: var(--primary); 
+    color: white; 
+    border: none; 
+    border-radius: 6px; 
+    cursor: pointer; 
+    width: 100%; 
+    font-size: 1.1rem;
+}
+.next-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
         :root { --primary: #2563eb; --success: #22c55e; --error: #ef4444; --bg: #f8fafc; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; }
         .container { width: 100%; max-width: 600px; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
@@ -39,6 +51,7 @@
     </div>
 
     <div id="game-view" class="hidden">
+        <button id="next-btn" class="next-btn hidden" onclick="nextQuestion()">Next Sentence →</button>
         <div class="header">
             <button class="back-btn" onclick="showMenu()">← Back</button>
             <div id="progress-text">Sentence 1 / 15</div>
@@ -54,28 +67,33 @@
 const VERBS_PER_SET = 15;
 const SENTS_PER_VERB = 4;
 
-let currentSessionData = []; // The sentences for the current play session
+let currentSessionData = []; 
 let currentIdx = 0;
-let sessionCorrectCount = {}; // Tracks { "warten auf": 4 }
+let currentSetId = null;
 
-// --- Initialization ---
 function init() {
-    if (typeof vocabularyData === 'undefined') {
-        document.getElementById('menu-view').innerHTML = "<h1>Error: data.js not loaded</h1>";
-        return;
+    if (typeof vocabularyData === 'undefined') return;
+    
+    // Check if there is a saved session to resume
+    const saved = JSON.parse(localStorage.getItem('active_session'));
+    if (saved) {
+        currentSessionData = saved.data;
+        currentIdx = saved.idx;
+        currentSetId = saved.setId;
+        showGame();
+    } else {
+        renderMenu();
     }
-    renderMenu();
 }
 
 function renderMenu() {
+    localStorage.removeItem('active_session'); // Clear session when in menu
     document.getElementById('menu-view').classList.remove('hidden');
     document.getElementById('game-view').classList.add('hidden');
     
     const grid = document.getElementById('sets-grid');
-    const mistakeContainer = document.getElementById('mistake-container');
     grid.innerHTML = '';
     
-    // Calculate total sets based on 15 verbs (60 sentences) per set
     const totalSets = Math.ceil(vocabularyData.length / (VERBS_PER_SET * SENTS_PER_VERB));
 
     for (let i = 0; i < totalSets; i++) {
@@ -83,42 +101,45 @@ function renderMenu() {
         const pct = (masteredInSet / VERBS_PER_SET) * 100;
         
         grid.innerHTML += `
-            <div class="set-btn" onclick="startSet(${i})">
-                <strong>Set ${i + 1} (Verbs 1-15)</strong>
+            <div class="set-btn" onclick="prepareSet(${i})">
+                <strong>Set ${i + 1}</strong>
                 <div class="progress-bar"><div class="progress-fill" style="width: ${pct}%"></div></div>
                 <small>${masteredInSet} / ${VERBS_PER_SET} Verbs Mastered</small>
             </div>
         `;
     }
-
-    renderMistakesAndLearning(mistakeContainer);
 }
 
-function renderMistakesAndLearning(container) {
-    const mistakes = JSON.parse(localStorage.getItem('mistakes') || '[]');
-    const learning = JSON.parse(localStorage.getItem('learning_pairs') || '[]');
-
-    if (mistakes.length > 0 || learning.length > 0) {
-        container.innerHTML = `<h3>Review & Learning</h3>`;
-        if (mistakes.length > 0) {
-            container.innerHTML += `<button class="set-btn" style="border-color:orange; width:100%" onclick="startReview('mistakes')">Review Mistakes (${mistakes.length})</button>`;
-        }
-    }
-}
-
-// --- Game Logic ---
-
-function startSet(setNum) {
+// Filter sentences to ONLY show unmastered verbs
+function prepareSet(setNum) {
     const start = setNum * (VERBS_PER_SET * SENTS_PER_VERB);
     const end = start + (VERBS_PER_SET * SENTS_PER_VERB);
-    currentSessionData = vocabularyData.slice(start, end);
+    const setSentences = vocabularyData.slice(start, end);
     
-    // Shuffle the 60 sentences so you don't get the same verb 4 times in a row
+    const masteryData = JSON.parse(localStorage.getItem('mastery_tracking') || '{}');
+    
+    // Only include sentences where the Verb-Pair mastery is < 4
+    currentSessionData = setSentences.filter(item => (masteryData[item.pair] || 0) < 4);
+    
+    if (currentSessionData.length === 0) {
+        alert("You have mastered all verbs in this set!");
+        return;
+    }
+
     currentSessionData.sort(() => Math.random() - 0.5);
-    
     currentIdx = 0;
-    sessionCorrectCount = {}; 
+    currentSetId = setNum;
+    saveSession();
     showGame();
+}
+
+function saveSession() {
+    const session = {
+        data: currentSessionData,
+        idx: currentIdx,
+        setId: currentSetId
+    };
+    localStorage.setItem('active_session', JSON.stringify(session));
 }
 
 function showGame() {
@@ -128,9 +149,10 @@ function showGame() {
 }
 
 function loadQuestion() {
-    // RESET UI COMPLETELY
     const grid = document.getElementById('options-grid');
+    const nextBtn = document.getElementById('next-btn');
     grid.innerHTML = ''; 
+    nextBtn.classList.add('hidden'); // Hide until answered
     document.getElementById('translation-text').innerText = "";
     
     const item = currentSessionData[currentIdx];
@@ -138,7 +160,6 @@ function loadQuestion() {
     document.getElementById('sentence-text').innerText = item.sentence;
     
     const options = ["an", "auf", "für", "mit", "über", "von", "zu", "um", "vor", "bei"];
-    // Ensure correct answer is in options and pick 3 others
     let choices = [item.answer];
     while(choices.length < 4) {
         let r = options[Math.floor(Math.random() * options.length)];
@@ -148,58 +169,52 @@ function loadQuestion() {
 
     choices.forEach(opt => {
         const btn = document.createElement('button');
-        btn.className = 'opt-btn'; // CSS will reset this
+        btn.className = 'opt-btn';
         btn.innerText = opt;
-        btn.onclick = (e) => handleAnswer(opt, item.answer, btn);
+        btn.onclick = () => handleAnswer(opt, item.answer, btn);
         grid.appendChild(btn);
     });
 }
 
 function handleAnswer(selected, correct, btn) {
     const item = currentSessionData[currentIdx];
-    // Disable all buttons to prevent double-clicking
     const buttons = document.querySelectorAll('.opt-btn');
     buttons.forEach(b => b.style.pointerEvents = 'none');
 
     if (selected === correct) {
         btn.classList.add('correct');
         updateMastery(item.pair, true);
-        removeFromMistakes(item.id);
-        setTimeout(nextQuestion, 1000);
     } else {
         btn.classList.add('wrong');
-        // Show correct answer
         buttons.forEach(b => { if(b.innerText === correct) b.classList.add('correct'); });
         updateMastery(item.pair, false);
-        addToMistakes(item.id);
-        setTimeout(nextQuestion, 2000);
     }
+    
     document.getElementById('translation-text').innerText = item.translation;
+    document.getElementById('next-btn').classList.remove('hidden'); // Show Next button
 }
 
 function nextQuestion() {
     currentIdx++;
     if (currentIdx < currentSessionData.length) {
+        saveSession();
         loadQuestion();
     } else {
-        alert("Session Complete! Check your progress in the menu.");
+        alert("Set Finished!");
+        localStorage.removeItem('active_session');
         renderMenu();
     }
 }
 
-// --- Mastery & Storage ---
-
 function updateMastery(pairName, isCorrect) {
     let masteryData = JSON.parse(localStorage.getItem('mastery_tracking') || '{}');
-    
     if (!masteryData[pairName]) masteryData[pairName] = 0;
 
     if (isCorrect) {
         masteryData[pairName] += 1;
     } else {
-        masteryData[pairName] = 0; // Reset "Succession" to zero if wrong
+        masteryData[pairName] = 0; // Reset progress if wrong
     }
-
     localStorage.setItem('mastery_tracking', JSON.stringify(masteryData));
 }
 
@@ -207,26 +222,17 @@ function getMasteredCountForSet(setNum) {
     const start = setNum * VERBS_PER_SET;
     const end = start + VERBS_PER_SET;
     const masteryData = JSON.parse(localStorage.getItem('mastery_tracking') || '{}');
-    
-    // Get unique pairs in this set
     const allPairs = [...new Set(vocabularyData.map(item => item.pair))];
     const setPairs = allPairs.slice(start, end);
-    
-    // Count how many have score of 4
-    return setPairs.filter(p => masteryData[p] >= 4).length;
+    return setPairs.filter(p => (masteryData[p] || 0) >= 4).length;
 }
 
-function addToMistakes(id) {
-    let mistakes = JSON.parse(localStorage.getItem('mistakes') || '[]');
-    if (!mistakes.includes(id)) {
-        mistakes.push(id);
-        localStorage.setItem('mistakes', JSON.stringify(mistakes));
+// This makes the "Back" button in the UI work
+function showMenu() {
+    if(confirm("Do you want to save your progress and go back to the menu?")) {
+        saveSession(); // Save exactly where we are
+        renderMenu();
     }
-}
-
-function removeFromMistakes(id) {
-    let mistakes = JSON.parse(localStorage.getItem('mistakes') || '[]');
-    localStorage.setItem('mistakes', JSON.stringify(mistakes.filter(m => m !== id)));
 }
 
 window.onload = init;
